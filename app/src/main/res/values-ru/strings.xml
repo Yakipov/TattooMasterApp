@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Tattoo Master</string>
+    <string name="welcome">Привет</string>
+    <string name="logout">Выйти</string>
+    <string name="profile_email">Email: %1$s</string>
+    <string name="email">Эл. почта</string>
+    <string name="password">Пароль</string>
+    <string name="sign_in">Войти</string>
+    <string name="error_unknown">Неизвестная ошибка</string>
+    <string name="language">Язык</string>
+</resources>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "357805602386",
+    "project_id": "tattoomasterapp-3dce8",
+    "storage_bucket": "tattoomasterapp-3dce8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:357805602386:android:15fd202acb769679b0918b",
+        "android_client_info": {
+          "package_name": "com.ayforge.tattoomasterapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhjByVLvec2U8IjMQ6sOPXH0WgCvVTMUQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
