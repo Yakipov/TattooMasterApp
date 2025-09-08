@@ -96,17 +96,15 @@ fun MonthCalendar(
                             modifier = Modifier.padding(top = 6.dp)
                         )
 
-                        // Маленькая точка-индикатор встреч, как в Google
+// Вместо точки — количество встреч
                         if (appointments.isNotEmpty()) {
-                            Box(
+                            Text(
+                                text = appointments.size.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
-                                    .size(6.dp)
                                     .align(Alignment.BottomCenter)
-                                    .padding(bottom = 6.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        shape = CircleShape
-                                    )
+                                    .padding(bottom = 4.dp)
                             )
                         }
                     }

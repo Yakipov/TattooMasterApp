@@ -21,6 +21,7 @@ import java.time.LocalTime
 fun CreateAppointmentScreen(
     navController: NavController,
     date: LocalDate,
+    time: LocalTime? = null, // 🔑 новое
     viewModel: AppointmentViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
@@ -30,13 +31,27 @@ fun CreateAppointmentScreen(
     var email by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
 
-    var startTime by remember { mutableStateOf(LocalTime.of(10, 0)) }
-    var endTime by remember { mutableStateOf(startTime.plusHours(1)) }
+    // округляем текущее время до 15 минут
+    fun roundToQuarterHour(time: LocalTime): LocalTime {
+        val minute = (time.minute / 15) * 15
+        return time.withMinute(minute).withSecond(0).withNano(0)
+    }
 
-    // 🔑 флаг: пользователь сам правил время конца
+    var startTime by remember {
+        mutableStateOf(
+            time ?: roundToQuarterHour(LocalTime.now())
+        )
+    }
+    var endTime by remember { mutableStateOf(startTime.plusHours(1)) }
     var manuallyChangedEnd by remember { mutableStateOf(false) }
 
     val clientCheckResult by viewModel.clientCheckResult.collectAsState()
+    var showConflictDialog by remember { mutableStateOf(false) }
+
+    // Загружаем список встреч для выбранного дня
+    LaunchedEffect(date) {
+        viewModel.loadAppointmentsForDay(date)
+    }
 
     // Проверка клиента по имени и телефону
     LaunchedEffect(name, phone) {
@@ -45,6 +60,19 @@ fun CreateAppointmentScreen(
         } else {
             viewModel.clearClientCheck()
         }
+    }
+
+    if (showConflictDialog) {
+        AlertDialog(
+            onDismissRequest = { showConflictDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showConflictDialog = false }) {
+                    Text("Ок")
+                }
+            },
+            title = { Text("Конфликт времени") },
+            text = { Text("На это время уже назначена другая встреча.") }
+        )
     }
 
     Scaffold(
@@ -109,12 +137,9 @@ fun CreateAppointmentScreen(
                     { _, hour: Int, minute: Int ->
                         val newStart = LocalTime.of(hour, minute)
                         startTime = newStart
-
-                        // если конец не трогали руками → всегда +1ч
                         if (!manuallyChangedEnd) {
                             endTime = startTime.plusHours(1)
                         } else if (endTime <= startTime) {
-                            // защита от пересечения
                             endTime = startTime.plusHours(1)
                         }
                     },
@@ -137,7 +162,7 @@ fun CreateAppointmentScreen(
                         } else {
                             chosenEnd
                         }
-                        manuallyChangedEnd = true // пользователь сам задал
+                        manuallyChangedEnd = true
                     },
                     endTime.hour,
                     endTime.minute,
@@ -145,6 +170,36 @@ fun CreateAppointmentScreen(
                 ).show()
             }) {
                 Text("Окончание: %02d:%02d".format(endTime.hour, endTime.minute))
+            }
+
+            // Быстрые кнопки длительности
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = {
+                        endTime = startTime.plusMinutes(30)
+                        manuallyChangedEnd = true
+                    },
+                    modifier = Modifier.weight(1f)
+                ) { Text("+30 м") }
+
+                Button(
+                    onClick = {
+                        endTime = startTime.plusHours(1)
+                        manuallyChangedEnd = true
+                    },
+                    modifier = Modifier.weight(1f)
+                ) { Text("+1 ч") }
+
+                Button(
+                    onClick = {
+                        endTime = startTime.plusHours(2)
+                        manuallyChangedEnd = true
+                    },
+                    modifier = Modifier.weight(1f)
+                ) { Text("+2 ч") }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -156,6 +211,12 @@ fun CreateAppointmentScreen(
 
                     if (endDateTime <= startDateTime) {
                         endDateTime = startDateTime.plusHours(1)
+                    }
+
+                    // 🔑 проверка пересечения
+                    if (viewModel.hasOverlap(startDateTime, endDateTime)) {
+                        showConflictDialog = true
+                        return@Button
                     }
 
                     if (clientCheckResult is ClientCheckResult.ExistingClient) {

@@ -28,6 +28,9 @@ fun AppointmentDetailScreen(
     val appointmentWithClient by viewModel.selectedAppointment.collectAsState()
     var isEditing by remember { mutableStateOf(false) }
 
+    // состояние для диалога удаления
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     // Локальные состояния для редактирования
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -50,7 +53,7 @@ fun AppointmentDetailScreen(
     }
 
     LaunchedEffect(appointmentId) {
-        viewModel.loadAppointmentWithClientById(appointmentId)
+        viewModel.loadAppointmentById(appointmentId)
     }
 
     LaunchedEffect(appointmentWithClient, isEditing) {
@@ -109,10 +112,7 @@ fun AppointmentDetailScreen(
                             Icon(Icons.Filled.Edit, contentDescription = "Редактировать")
                         }
                         IconButton(onClick = {
-                            appointmentWithClient?.appointment?.let {
-                                viewModel.deleteAppointment(it)
-                                navController.popBackStack()
-                            }
+                            showDeleteDialog = true
                         }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Удалить")
                         }
@@ -209,6 +209,31 @@ fun AppointmentDetailScreen(
             ) {
                 Text("Окончание: %02d:%02d".format(endTime.hour, endTime.minute))
             }
+        }
+
+        // Диалог подтверждения удаления
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Удалить встречу") },
+                text = { Text("Вы уверены, что хотите удалить эту встречу?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        appointmentWithClient?.appointment?.let {
+                            viewModel.deleteAppointment(it)
+                            navController.popBackStack()
+                        }
+                        showDeleteDialog = false
+                    }) {
+                        Text("Да")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Нет")
+                    }
+                }
+            )
         }
     }
 }

@@ -5,8 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.navigation.compose.rememberNavController
-import com.ayforge.tattoomasterapp.presentation.navigation.AppNavGraph
+import com.ayforge.tattoomasterapp.presentation.navigation.DrawerScreen
 import com.ayforge.tattoomasterapp.ui.theme.TattooMasterAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -16,8 +15,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             TattooMasterAppTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    val navController = rememberNavController()
-                    AppNavGraph(navController = navController)
+                    DrawerScreen(
+                        onLogout = {
+                            // 🔑 пока просто заглушка — уходим на экран SignIn
+                            // (навигация внутри DrawerScreen → AppNavGraph)
+                        }
+                    )
                 }
             }
         }

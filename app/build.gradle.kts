@@ -95,6 +95,8 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     implementation("androidx.datastore:datastore-preferences:1.1.0")
+
+    implementation("androidx.compose.material:material-icons-extended:1.6.6")
 }
 
 apply(plugin = "com.google.gms.google-services")

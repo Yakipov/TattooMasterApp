@@ -30,12 +30,10 @@ class AppointmentViewModel(
         MutableStateFlow<Map<LocalDate, List<AppointmentEntity>>>(emptyMap())
     val appointmentsForMonth: StateFlow<Map<LocalDate, List<AppointmentEntity>>> = _appointmentsForMonth
 
-    // теперь встречи с клиентом для дня
     private val _appointmentsForDay =
         MutableStateFlow<List<AppointmentWithClient>>(emptyList())
     val appointmentsForDay: StateFlow<List<AppointmentWithClient>> = _appointmentsForDay
 
-    // одна выбранная встреча с клиентом
     private val _selectedAppointment = MutableStateFlow<AppointmentWithClient?>(null)
     val selectedAppointment: StateFlow<AppointmentWithClient?> = _selectedAppointment.asStateFlow()
 
@@ -72,7 +70,7 @@ class AppointmentViewModel(
 
             appointmentRepository.insert(appointment)
 
-            // обновляем список
+            // обновляем месяц и день
             loadAppointmentsForMonth(YearMonth.from(startTime.toLocalDate()))
             loadAppointmentsForDay(startTime.toLocalDate())
         }
@@ -82,6 +80,9 @@ class AppointmentViewModel(
         viewModelScope.launch {
             appointmentRepository.delete(appointment)
             _selectedAppointment.value = null
+            // обновляем месяц и день
+            loadAppointmentsForMonth(YearMonth.from(appointment.startTime.toLocalDate()))
+            loadAppointmentsForDay(appointment.startTime.toLocalDate())
         }
     }
 
@@ -94,11 +95,13 @@ class AppointmentViewModel(
             val start = yearMonth.atDay(1).atStartOfDay()
             val end = yearMonth.atEndOfMonth().plusDays(1).atStartOfDay()
 
-            appointmentRepository.getAppointmentsBetween(start, end).collect { list ->
-                _appointmentsForMonth.value = list.groupBy { it.startTime.toLocalDate() }
-            }
+            appointmentRepository.getAppointmentsBetween(start, end)
+                .collectLatest { list ->
+                    _appointmentsForMonth.value = list.groupBy { it.startTime.toLocalDate() }
+                }
         }
     }
+
 
     fun loadAppointmentsForDay(date: LocalDate) {
         viewModelScope.launch {
@@ -139,12 +142,17 @@ class AppointmentViewModel(
 
             // обновляем selected и списки
             _selectedAppointment.value = appointmentRepository.getAppointmentWithClientById(apptToSave.id)
+            loadAppointmentsForMonth(YearMonth.from(apptToSave.startTime.toLocalDate()))
+            loadAppointmentsForDay(apptToSave.startTime.toLocalDate())
         }
     }
 
-    fun loadAppointmentWithClientById(id: Long) {
-        viewModelScope.launch {
-            _selectedAppointment.value = appointmentRepository.getAppointmentWithClientById(id)
+    fun hasOverlap(start: LocalDateTime, end: LocalDateTime, ignoreId: Long? = null): Boolean {
+        val list = appointmentsForDay.value
+        return list.any { apptWithClient ->
+            val appt = apptWithClient.appointment
+            if (ignoreId != null && appt.id == ignoreId) return@any false
+            start < appt.endTime && end > appt.startTime
         }
     }
 }

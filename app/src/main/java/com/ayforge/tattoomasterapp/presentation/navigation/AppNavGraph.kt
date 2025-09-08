@@ -1,12 +1,14 @@
 package com.ayforge.tattoomasterapp.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.ayforge.tattoomasterapp.core.session.SessionManager
+import com.ayforge.tattoomasterapp.presentation.clients.ClientsScreen
 import com.ayforge.tattoomasterapp.presentation.appointment.AppointmentDetailScreen
 import com.ayforge.tattoomasterapp.presentation.appointment.CreateAppointmentScreen
 import com.ayforge.tattoomasterapp.presentation.splash.SplashScreen
@@ -17,17 +19,20 @@ import com.ayforge.tattoomasterapp.presentation.calendar.CalendarScreen
 import com.ayforge.tattoomasterapp.presentation.calendar.DayScreen
 import org.koin.compose.koinInject
 import java.time.LocalDate
+import java.time.LocalTime
 
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
-    sessionManager: SessionManager = koinInject()
+    sessionManager: SessionManager = koinInject(),
+    modifier: Modifier = Modifier
 ) {
-    val startDestination = "calendar" // 👈 теперь начинаем с календаря
+    val startDestination = "calendar" // 👈 начинаем с календаря
 
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = startDestination,
+        modifier = modifier
     ) {
         composable("splash") {
             SplashScreen(navController = navController)
@@ -55,24 +60,33 @@ fun AppNavGraph(
             val dateString = backStackEntry.arguments?.getString("date")
             val date = dateString?.let { LocalDate.parse(it) } ?: LocalDate.now()
 
-            // 👇 теперь DayScreen сам подтягивает встречи через AppointmentViewModel
             DayScreen(
                 navController = navController,
                 date = date
             )
         }
+
+        // 🔑 теперь поддерживаем параметр time
         composable(
-            route = "appointment/new?date={date}",
-            arguments = listOf(navArgument("date") { type = NavType.StringType })
+            route = "appointment/new?date={date}&time={time}",
+            arguments = listOf(
+                navArgument("date") { type = NavType.StringType },
+                navArgument("time") { type = NavType.StringType; defaultValue = "" }
+            )
         ) { backStackEntry ->
-            val dateString = backStackEntry.arguments?.getString("date")
-            val date = dateString?.let { LocalDate.parse(it) } ?: LocalDate.now()
+            val dateStr = backStackEntry.arguments?.getString("date")!!
+            val timeStr = backStackEntry.arguments?.getString("time")
+
+            val date = LocalDate.parse(dateStr)
+            val time = timeStr?.takeIf { it.isNotEmpty() }?.let { LocalTime.parse(it) }
 
             CreateAppointmentScreen(
                 navController = navController,
-                date = date
+                date = date,
+                time = time
             )
         }
+
         composable(
             route = "appointment/{id}",
             arguments = listOf(navArgument("id") { type = NavType.LongType })
@@ -80,9 +94,12 @@ fun AppNavGraph(
             val id = backStackEntry.arguments?.getLong("id") ?: 0L
             AppointmentDetailScreen(
                 navController = navController,
-                appointmentId = id // 👈 всё остаётся
+                appointmentId = id
             )
         }
 
+        composable("clients") {
+            ClientsScreen()
+        }
     }
 }
