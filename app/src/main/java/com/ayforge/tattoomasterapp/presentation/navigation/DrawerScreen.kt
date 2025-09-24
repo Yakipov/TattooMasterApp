@@ -15,15 +15,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.ayforge.tattoomasterapp.core.session.SessionManager
 import kotlinx.coroutines.launch
 
 @Composable
 fun DrawerScreen(
-    navController: NavHostController = rememberNavController(),
-    onLogout: () -> Unit = {}
+    navController: NavHostController,      // внешний / корневой контроллер (AppNavGraph)
+    sessionManager: SessionManager,
+    onLogout: () -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    // отдельный navController для внутренних экранов
+    val innerNavController = rememberNavController()
 
     val items = listOf(
         DrawerItem("calendar", "Календарь", Icons.Filled.CalendarToday),
@@ -46,13 +51,23 @@ fun DrawerScreen(
                         onClick = {
                             selectedItem = item
                             when (item.route) {
-                                "logout" -> onLogout()
-                                else -> navController.navigate(item.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
+                                "logout" -> {
+                                    onLogout() // обычно signOut() из Firebase
+                                    sessionManager.clearSession()
+                                    // вернуться в signin на корневом контроллере
+                                    navController.navigate("signin") {
+                                        popUpTo("main") { inclusive = true }
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                }
+                                else -> {
+                                    // навигация внутри innerNavController
+                                    innerNavController.navigate(item.route) {
+                                        popUpTo(innerNavController.graph.startDestinationId) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             }
                             scope.launch { drawerState.close() }
@@ -75,8 +90,8 @@ fun DrawerScreen(
                 )
             }
         ) { innerPadding ->
-            AppNavGraph(
-                navController = navController,
+            InnerNavGraph(
+                navController = innerNavController,
                 modifier = Modifier.padding(innerPadding)
             )
         }

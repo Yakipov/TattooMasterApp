@@ -45,4 +45,12 @@ interface AppointmentDao {
     @Transaction
     @Query("SELECT * FROM appointments WHERE id = :id LIMIT 1")
     suspend fun getAppointmentWithClientById(id: Long): AppointmentWithClient?
+
+    @Transaction
+    @Query("SELECT * FROM appointments WHERE clientId = :clientId ORDER BY startTime DESC")
+    fun getAppointmentsByClientId(clientId: Long): Flow<List<AppointmentWithClient>>
+
+    @Query("DELETE FROM appointments WHERE clientId = :clientId")
+    suspend fun deleteAppointmentsByClientId(clientId: Long)
+
 }

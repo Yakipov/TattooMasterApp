@@ -10,16 +10,16 @@ import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun SignInScreen(
-    viewModel: SignInViewModel = koinViewModel(),
-    onSignInSuccess: () -> Unit,
-    onNavigateToSignUp: () -> Unit
+fun SignUpScreen(
+    viewModel: SignUpViewModel = koinViewModel(),
+    onSignUpSuccess: () -> Unit,
+    onNavigateToSignIn: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
 
     LaunchedEffect(state.success) {
         if (state.success) {
-            onSignInSuccess()
+            onSignUpSuccess()
         }
     }
 
@@ -34,7 +34,7 @@ fun SignInScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Вход", style = MaterialTheme.typography.headlineSmall)
+            Text("Регистрация", style = MaterialTheme.typography.headlineSmall)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -57,24 +57,35 @@ fun SignInScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = state.confirmPassword,
+                onValueChange = viewModel::onConfirmPasswordChange,
+                label = { Text("Подтверждение пароля") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { viewModel.signIn() },
+                onClick = { viewModel.signUp() },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !state.isLoading
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 } else {
-                    Text("Войти")
+                    Text("Зарегистрироваться")
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            TextButton(onClick = onNavigateToSignUp) {
-                Text("Нет аккаунта? Зарегистрироваться")
+            TextButton(onClick = onNavigateToSignIn) {
+                Text("Уже есть аккаунт? Войти")
             }
 
             state.error?.let {

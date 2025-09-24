@@ -20,5 +20,13 @@ interface AppointmentRepository {
     // --- AppointmentWithClient (JOIN) ---
     fun getAppointmentsWithClientBetween(start: LocalDateTime, end: LocalDateTime): Flow<List<AppointmentWithClient>>
     suspend fun getAppointmentWithClientById(id: Long): AppointmentWithClient?
+
+    fun getAppointmentsByClientId(clientId: Long): Flow<List<AppointmentWithClient>>
+    suspend fun getAppointmentsByClient(clientId: Long): List<AppointmentWithClient>
+
+    suspend fun deleteAppointmentsByClientId(clientId: Long)
+
+
+
 }
 

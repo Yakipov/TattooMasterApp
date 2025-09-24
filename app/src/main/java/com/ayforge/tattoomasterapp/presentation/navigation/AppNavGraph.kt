@@ -5,21 +5,12 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
-import androidx.navigation.NavType
 import com.ayforge.tattoomasterapp.core.session.SessionManager
-import com.ayforge.tattoomasterapp.presentation.clients.ClientsScreen
-import com.ayforge.tattoomasterapp.presentation.appointment.AppointmentDetailScreen
-import com.ayforge.tattoomasterapp.presentation.appointment.CreateAppointmentScreen
-import com.ayforge.tattoomasterapp.presentation.splash.SplashScreen
 import com.ayforge.tattoomasterapp.presentation.auth.SignInScreen
-import com.ayforge.tattoomasterapp.presentation.home.HomeScreen
-import com.ayforge.tattoomasterapp.presentation.profile.ProfileScreen
-import com.ayforge.tattoomasterapp.presentation.calendar.CalendarScreen
-import com.ayforge.tattoomasterapp.presentation.calendar.DayScreen
+import com.ayforge.tattoomasterapp.presentation.auth.SignUpScreen
+import com.ayforge.tattoomasterapp.presentation.navigation.DrawerScreen
 import org.koin.compose.koinInject
-import java.time.LocalDate
-import java.time.LocalTime
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun AppNavGraph(
@@ -27,79 +18,52 @@ fun AppNavGraph(
     sessionManager: SessionManager = koinInject(),
     modifier: Modifier = Modifier
 ) {
-    val startDestination = "calendar" // 👈 начинаем с календаря
+    val startDestination = if (sessionManager.isUserSignedIn) "main" else "signin"
 
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier
     ) {
-        composable("splash") {
-            SplashScreen(navController = navController)
-        }
+        // --- Auth ---
         composable("signin") {
-            SignInScreen(navController = navController)
-        }
-        composable("home") {
-            HomeScreen()
-        }
-        composable("profile") {
-            ProfileScreen(navController = navController)
-        }
-        composable("calendar") {
-            CalendarScreen(
-                onDayClick = { date ->
-                    navController.navigate("day/$date")
+            SignInScreen(
+                onSignInSuccess = {
+                    navController.navigate("main") {
+                        popUpTo("signin") { inclusive = true }
+                    }
+                },
+                onNavigateToSignUp = {
+                    navController.navigate("signup")
                 }
             )
         }
-        composable(
-            route = "day/{date}",
-            arguments = listOf(navArgument("date") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val dateString = backStackEntry.arguments?.getString("date")
-            val date = dateString?.let { LocalDate.parse(it) } ?: LocalDate.now()
 
-            DayScreen(
-                navController = navController,
-                date = date
+        composable("signup") {
+            SignUpScreen(
+                onSignUpSuccess = {
+                    navController.navigate("main") {
+                        popUpTo("signup") { inclusive = true }
+                    }
+                },
+                onNavigateToSignIn = {
+                    navController.navigate("signin")
+                }
             )
         }
 
-        // 🔑 теперь поддерживаем параметр time
-        composable(
-            route = "appointment/new?date={date}&time={time}",
-            arguments = listOf(
-                navArgument("date") { type = NavType.StringType },
-                navArgument("time") { type = NavType.StringType; defaultValue = "" }
-            )
-        ) { backStackEntry ->
-            val dateStr = backStackEntry.arguments?.getString("date")!!
-            val timeStr = backStackEntry.arguments?.getString("time")
-
-            val date = LocalDate.parse(dateStr)
-            val time = timeStr?.takeIf { it.isNotEmpty() }?.let { LocalTime.parse(it) }
-
-            CreateAppointmentScreen(
+        // --- Main (Drawer + inner navigation) ---
+        composable("main") {
+            // передаём наружный navController чтобы DrawerScreen мог при logout'е вернуться на signin
+            DrawerScreen(
                 navController = navController,
-                date = date,
-                time = time
+                sessionManager = sessionManager,
+                onLogout = {
+                    // Очистка Firebase производится внутри DrawerScreen через onLogout,
+                    // здесь можем дополнительно делать логику, если нужно.
+                    FirebaseAuth.getInstance().signOut()
+                }
             )
-        }
-
-        composable(
-            route = "appointment/{id}",
-            arguments = listOf(navArgument("id") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getLong("id") ?: 0L
-            AppointmentDetailScreen(
-                navController = navController,
-                appointmentId = id
-            )
-        }
-
-        composable("clients") {
-            ClientsScreen()
         }
     }
 }

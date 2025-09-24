@@ -7,8 +7,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 data class SignInUiState(
+    val email: String = "",
+    val password: String = "",
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val success: Boolean = false
 )
 
 class SignInViewModel(
@@ -17,23 +20,53 @@ class SignInViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignInUiState())
-    private val _isSignedIn = MutableStateFlow(false)
     val uiState: StateFlow<SignInUiState> = _uiState
-    val isSignedIn: StateFlow<Boolean> = _isSignedIn
 
-    fun signIn(email: String, password: String) {
-        _uiState.value = SignInUiState(isLoading = true)
+    fun onEmailChange(newEmail: String) {
+        _uiState.value = _uiState.value.copy(email = newEmail)
+    }
 
-        firebaseAuth.signInWithEmailAndPassword(email, password)
+    fun onPasswordChange(newPassword: String) {
+        _uiState.value = _uiState.value.copy(password = newPassword)
+    }
+
+    fun signIn() {
+        val state = _uiState.value
+        if (state.email.isBlank() || state.password.isBlank()) {
+            _uiState.value = state.copy(error = "Введите email и пароль")
+            return
+        }
+
+        _uiState.value = state.copy(isLoading = true, error = null)
+
+        firebaseAuth.signInWithEmailAndPassword(state.email, state.password)
             .addOnCompleteListener { task ->
-                _uiState.value = SignInUiState(isLoading = false)
-
                 if (task.isSuccessful) {
-                    sessionManager.isUserSignedIn = true // ✅ сохраняем сессию
-                    _isSignedIn.value = true
+                    sessionManager.isUserSignedIn = true
+                    _uiState.value = state.copy(isLoading = false, success = true)
                 } else {
-                    _uiState.value = SignInUiState(
+                    _uiState.value = state.copy(
+                        isLoading = false,
                         error = task.exception?.message ?: "Ошибка входа"
+                    )
+                }
+            }
+    }
+
+    fun resetPassword() {
+        val state = _uiState.value
+        if (state.email.isBlank()) {
+            _uiState.value = state.copy(error = "Введите email для сброса пароля")
+            return
+        }
+
+        firebaseAuth.sendPasswordResetEmail(state.email)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    _uiState.value = state.copy(error = "Письмо для сброса пароля отправлено")
+                } else {
+                    _uiState.value = state.copy(
+                        error = task.exception?.message ?: "Ошибка сброса пароля"
                     )
                 }
             }

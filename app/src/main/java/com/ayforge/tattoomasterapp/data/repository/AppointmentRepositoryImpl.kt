@@ -5,6 +5,7 @@ import com.ayforge.tattoomasterapp.data.local.entity.AppointmentEntity
 import com.ayforge.tattoomasterapp.data.local.entity.AppointmentWithClient
 import com.ayforge.tattoomasterapp.domain.repository.AppointmentRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import java.time.LocalDateTime
 
 class AppointmentRepositoryImpl(
@@ -40,4 +41,17 @@ class AppointmentRepositoryImpl(
 
     override suspend fun getAppointmentWithClientById(id: Long): AppointmentWithClient? =
         appointmentDao.getAppointmentWithClientById(id)
+
+    override fun getAppointmentsByClientId(clientId: Long): Flow<List<AppointmentWithClient>> =
+        appointmentDao.getAppointmentsByClientId(clientId)
+
+    // --- Реализация suspend-метода (требуемого интерфейсом) ---
+    // Возвращаем одноразовый список, взятый из Flow (первое эмит-значение).
+    override suspend fun getAppointmentsByClient(clientId: Long): List<AppointmentWithClient> =
+        appointmentDao.getAppointmentsByClientId(clientId).first()
+
+    override suspend fun deleteAppointmentsByClientId(clientId: Long) {
+        appointmentDao.deleteAppointmentsByClientId(clientId)
+    }
+
 }
