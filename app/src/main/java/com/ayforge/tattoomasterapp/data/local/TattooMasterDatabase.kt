@@ -11,7 +11,7 @@ import com.ayforge.tattoomasterapp.data.local.dao.ClientDao
 
 @Database(
     entities = [ClientEntity::class, AppointmentEntity::class],
-    version = 2
+    version = 3
 )
 @TypeConverters(DateTimeConverters::class)
 abstract class TattooMasterDatabase : RoomDatabase() {

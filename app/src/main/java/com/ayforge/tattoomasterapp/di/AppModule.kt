@@ -52,8 +52,8 @@ val appModule = module {
     single { get<TattooMasterDatabase>().appointmentDao() }
 
     // Repositories
-    single<ClientRepository> { ClientRepositoryImpl(get()) }
-    single<AppointmentRepository> { AppointmentRepositoryImpl(get()) }
+    single<ClientRepository> { ClientRepositoryImpl(get(), get()) } // ClientDao + SessionManager
+    single<AppointmentRepository> { AppointmentRepositoryImpl(get(), get()) } // AppointmentDao + SessionManager
 
     // UseCases
     factory { GetCurrentUserUseCase(get()) }
@@ -62,13 +62,14 @@ val appModule = module {
     // ViewModels
     viewModel { UserViewModel(get()) }
     viewModel { HomeViewModel(get()) }
-    viewModel { SignUpViewModel(get()) }
-    viewModel { SignInViewModel(firebaseAuth = get(), sessionManager = get()) }
+    viewModel { SignUpViewModel(get(), get()) }
+    viewModel { SignInViewModel(firebaseAuth = get(), sessionManager = get()) } // auth + session
     viewModel { ProfileViewModel(firebaseAuth = get(), sessionManager = get()) }
     viewModel { LanguageViewModel(get()) }
     viewModel { AppointmentViewModel(get(), get()) }
     viewModel { ClientViewModel(get()) }
     viewModel { ClientDetailViewModel(get(), get()) }
+
 
 
 }

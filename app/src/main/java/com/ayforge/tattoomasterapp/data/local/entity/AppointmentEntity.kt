@@ -10,5 +10,6 @@ data class AppointmentEntity(
     val clientId: Long,
     val startTime: LocalDateTime,
     val endTime: LocalDateTime,
-    val description: String?
+    val description: String?,
+    val userId: String
 )

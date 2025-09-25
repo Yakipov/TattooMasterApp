@@ -65,8 +65,10 @@ class AppointmentViewModel(
                 clientId = clientId,
                 startTime = startTime,
                 endTime = endTime,
-                description = description
+                description = description,
+                userId = "" // временно пустой, репозиторий заменит на currentUserId()
             )
+
 
             appointmentRepository.insert(appointment)
 
@@ -132,7 +134,10 @@ class AppointmentViewModel(
                 client.id
             }
 
-            val apptToSave = appointment.copy(clientId = clientId)
+            val apptToSave = appointment.copy(
+                clientId = clientId,
+                userId = "" // заглушка, репозиторий всё равно заменит
+            )
 
             if (apptToSave.id == 0L) {
                 appointmentRepository.insert(apptToSave)

@@ -42,7 +42,11 @@ class SignInViewModel(
         firebaseAuth.signInWithEmailAndPassword(state.email, state.password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    sessionManager.isUserSignedIn = true
+                    val user = firebaseAuth.currentUser
+                    if (user != null) {
+                        sessionManager.isUserSignedIn = true
+                        sessionManager.userId = user.uid  // сохраняем UID в SessionManager
+                    }
                     _uiState.value = state.copy(isLoading = false, success = true)
                 } else {
                     _uiState.value = state.copy(

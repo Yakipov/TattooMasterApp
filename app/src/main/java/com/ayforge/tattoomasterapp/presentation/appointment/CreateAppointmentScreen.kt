@@ -232,7 +232,8 @@ fun CreateAppointmentScreen(
                             id = 0L,
                             name = name,
                             phone = phone,
-                            email = email
+                            email = email,
+                            userId = "" // заглушка, в репозитории заменится на currentUserId()
                         )
                         viewModel.createAppointment(
                             client = newClient,

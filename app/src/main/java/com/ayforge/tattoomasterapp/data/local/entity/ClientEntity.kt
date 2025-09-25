@@ -9,5 +9,6 @@ data class ClientEntity(
     val name: String,
     val phone: String,
     val email: String? = null,
-    val note: String? = null
+    val note: String? = null,
+    val userId: String
 )

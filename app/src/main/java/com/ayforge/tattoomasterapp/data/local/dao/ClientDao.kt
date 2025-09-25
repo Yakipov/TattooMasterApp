@@ -16,25 +16,26 @@ interface ClientDao {
     @Delete
     suspend fun delete(client: ClientEntity)
 
-    @Query("SELECT * FROM clients ORDER BY name ASC")
-    fun getAllClients(): Flow<List<ClientEntity>>
+    // теперь фильтруем по userId
+    @Query("SELECT * FROM clients WHERE userId = :userId ORDER BY name ASC")
+    fun getAllClients(userId: String): Flow<List<ClientEntity>>
 
-    @Query("SELECT * FROM clients WHERE phone = :phone AND name = :name LIMIT 1")
-    suspend fun getByNameAndPhone(name: String, phone: String): ClientEntity?
+    @Query("SELECT * FROM clients WHERE phone = :phone AND name = :name AND userId = :userId LIMIT 1")
+    suspend fun getByNameAndPhone(name: String, phone: String, userId: String): ClientEntity?
 
-    @Query("SELECT * FROM clients WHERE id = :id LIMIT 1")
-    suspend fun getClientById(id: Long): ClientEntity?
+    @Query("SELECT * FROM clients WHERE id = :id AND userId = :userId LIMIT 1")
+    suspend fun getClientById(id: Long, userId: String): ClientEntity?
 
-    @Query("SELECT * FROM clients WHERE id = :id LIMIT 1")
-    fun observeClientById(id: Long): Flow<ClientEntity?>
+    @Query("SELECT * FROM clients WHERE id = :id AND userId = :userId LIMIT 1")
+    fun observeClientById(id: Long, userId: String): Flow<ClientEntity?>
 
     @Transaction
-    @Query("SELECT * FROM clients WHERE id = :id LIMIT 1")
-    fun getClientWithAppointments(id: Long): Flow<ClientWithAppointments?>
+    @Query("SELECT * FROM clients WHERE id = :id AND userId = :userId LIMIT 1")
+    fun getClientWithAppointments(id: Long, userId: String): Flow<ClientWithAppointments?>
 
-    @Query("DELETE FROM clients WHERE id = :clientId")
-    suspend fun deleteClientById(clientId: Long)
+    @Query("DELETE FROM clients WHERE id = :clientId AND userId = :userId")
+    suspend fun deleteClientById(clientId: Long, userId: String)
 
-    @Query("UPDATE clients SET name = :name, phone = :phone WHERE id = :id")
-    suspend fun updateClient(id: Long, name: String, phone: String)
+    @Query("UPDATE clients SET name = :name, phone = :phone WHERE id = :id AND userId = :userId")
+    suspend fun updateClient(id: Long, name: String, phone: String, userId: String)
 }

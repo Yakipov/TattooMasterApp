@@ -2,6 +2,7 @@ package com.ayforge.tattoomasterapp.presentation.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ayforge.tattoomasterapp.core.session.SessionManager
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +18,8 @@ data class SignUpUiState(
 )
 
 class SignUpViewModel(
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignUpUiState())
@@ -48,6 +50,11 @@ class SignUpViewModel(
             auth.createUserWithEmailAndPassword(state.email, state.password)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
+                        val user = auth.currentUser
+                        if (user != null) {
+                            sessionManager.isUserSignedIn = true
+                            sessionManager.userId = user.uid  // сохраняем UID
+                        }
                         _uiState.value = state.copy(isLoading = false, success = true)
                     } else {
                         _uiState.value = state.copy(
