@@ -8,4 +8,8 @@
     <string name="sign_in">Войти</string>
     <string name="error_unknown">Неизвестная ошибка</string>
     <string name="language">Язык</string>
+    <string name="profile_section_title">Профиль</string>
+    <string name="settings_section_title">Настройки</string>
+    <string name="settings_theme">Тёмная тема</string>
+    <string name="settings_notifications">Уведомления</string>
 </resources>

@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.ayforge.tattoomasterapp.core.session.SessionManager
 import kotlinx.coroutines.launch
@@ -39,6 +40,21 @@ fun DrawerScreen(
 
     var selectedItem by remember { mutableStateOf(items.first()) }
 
+    // Следим за текущим маршрутом
+    val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    val title = when {
+        currentRoute == "calendar" -> "Календарь"
+        currentRoute == "profile" -> "Профиль"
+        currentRoute == "clients" -> "Клиенты"
+        currentRoute?.startsWith("day") == true -> "День"
+        currentRoute?.startsWith("appointment") == true -> "Встреча"
+        currentRoute?.startsWith("clientDetail") == true -> "Клиент"
+        currentRoute?.startsWith("edit_client") == true -> "Редактирование клиента"
+        else -> "TattooMasterApp"
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -52,15 +68,13 @@ fun DrawerScreen(
                             selectedItem = item
                             when (item.route) {
                                 "logout" -> {
-                                    onLogout() // обычно signOut() из Firebase
+                                    onLogout()
                                     sessionManager.clearSession()
-                                    // вернуться в signin на корневом контроллере
                                     navController.navigate("signin") {
                                         popUpTo("main") { inclusive = true }
                                     }
                                 }
                                 else -> {
-                                    // навигация внутри innerNavController
                                     innerNavController.navigate(item.route) {
                                         popUpTo(innerNavController.graph.startDestinationId) {
                                             saveState = true
@@ -81,7 +95,7 @@ fun DrawerScreen(
         Scaffold(
             topBar = {
                 SmallTopAppBar(
-                    title = { Text(selectedItem.label) },
+                    title = { Text(title) },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Filled.Menu, contentDescription = "Меню")

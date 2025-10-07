@@ -8,4 +8,8 @@
     <string name="sign_in">Sign In</string>
     <string name="error_unknown">Unknown error</string>
     <string name="language">Language</string>
+    <string name="profile_section_title">Profile</string>
+    <string name="settings_section_title">Settings</string>
+    <string name="settings_theme">Dark Theme</string>
+    <string name="settings_notifications">Notifications</string>
 </resources>

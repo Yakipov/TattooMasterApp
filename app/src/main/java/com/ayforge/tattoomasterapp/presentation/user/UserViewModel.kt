@@ -28,5 +28,18 @@ class UserViewModel(
     fun logout() {
         userRepository.logout()
     }
-}
 
+    // --- FCM методы ---
+    fun saveFcmToken(token: String) {
+        viewModelScope.launch {
+            userRepository.saveFcmToken(token)
+        }
+    }
+
+    fun getFcmToken(onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            val token: String? = userRepository.getFcmToken()
+            onResult(token)
+        }
+    }
+}

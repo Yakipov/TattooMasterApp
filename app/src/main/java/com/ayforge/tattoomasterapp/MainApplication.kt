@@ -1,6 +1,7 @@
 package com.ayforge.tattoomasterapp
 
 import android.app.Application
+import com.ayforge.tattoomasterapp.core.notifications.NotificationHelper
 import com.google.firebase.FirebaseApp
 import com.ayforge.tattoomasterapp.di.appModule
 import org.koin.android.ext.koin.androidContext
@@ -15,5 +16,7 @@ class MainApplication : Application() {
             androidContext(this@MainApplication)
             modules(appModule)
         }
+
+        NotificationHelper.createNotificationChannels(this)
     }
 }

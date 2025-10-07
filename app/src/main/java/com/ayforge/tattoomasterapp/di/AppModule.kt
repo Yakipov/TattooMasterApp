@@ -27,25 +27,29 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    // Firebase
+    // Firebase + UserRepository
     single { FirebaseAuth.getInstance() }
-    single<UserRepository> { UserRepositoryImpl(firebaseAuth = get()) }
+    single<UserRepository> { UserRepositoryImpl(firebaseAuth = get(), context = get()) }
+
 
     // Core
     single { SessionManager(get()) }
-    single { SettingsDataStore(context = get()) }
-    single { LanguageManager(context = get(), settingsDataStore = get()) }
+    single { SettingsDataStore(context = get()) } // это пусть отдельно живёт, если будешь хранить тему/уведомления
+    single { LanguageManager(get()) } // только context
+
+
 
     // Room database
     single {
         Room.databaseBuilder(
-            get(),
+            get<android.content.Context>(), // <-- явно указываем Context
             TattooMasterDatabase::class.java,
             "tattoo_master.db"
         )
             .fallbackToDestructiveMigration()
             .build()
     }
+
 
     // DAOs
     single { get<TattooMasterDatabase>().clientDao() }

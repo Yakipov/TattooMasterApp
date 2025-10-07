@@ -1,32 +1,40 @@
 package com.ayforge.tattoomasterapp.core.settings
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.res.Configuration
-import java.util.*
+import java.util.Locale
 
-class LanguageManager(
-    private val context: Context,
-    private val settingsDataStore: SettingsDataStore
-) {
+class LanguageManager(private val context: Context) {
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
-    suspend fun setLanguage(languageCode: String) {
-        settingsDataStore.setLanguage(languageCode)
-        updateResources(languageCode)
+    companion object {
+        private const val KEY_LANGUAGE = "language"
     }
 
-
-    suspend fun getCurrentLanguage(): String {
-        return settingsDataStore.getLanguage()
+    fun getCurrentLanguage(): String {
+        return prefs.getString(KEY_LANGUAGE, Locale.getDefault().language) ?: "en"
     }
 
-    fun updateResources(languageCode: String) {
-        val locale = Locale(languageCode)
+    fun setLanguage(language: String) {
+        prefs.edit().putString(KEY_LANGUAGE, language).apply()
+        updateResources(language)
+    }
+
+    fun toggleLanguage(): String {
+        val newLang = if (getCurrentLanguage() == "en") "ru" else "en"
+        setLanguage(newLang)
+        return newLang
+    }
+
+    /** Применяем язык к Context */
+    private fun updateResources(language: String) {
+        val locale = Locale(language)
         Locale.setDefault(locale)
 
-        val resources = context.resources
-        val config = Configuration(resources.configuration)
+        val config = Configuration(context.resources.configuration)
         config.setLocale(locale)
-
-        resources.updateConfiguration(config, resources.displayMetrics)
+        context.resources.updateConfiguration(config, context.resources.displayMetrics)
     }
 }

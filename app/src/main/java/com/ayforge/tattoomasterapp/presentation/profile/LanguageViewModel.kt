@@ -1,5 +1,6 @@
 package com.ayforge.tattoomasterapp.presentation.profile
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ayforge.tattoomasterapp.core.settings.LanguageManager
@@ -12,30 +13,26 @@ class LanguageViewModel(
     private val languageManager: LanguageManager
 ) : ViewModel() {
 
-    private val _currentLanguage = MutableStateFlow("en") // Значение по умолчанию
+    private val _currentLanguage = MutableStateFlow(Locale.getDefault().language)
     val currentLanguage: StateFlow<String> = _currentLanguage
 
     init {
-        loadCurrentLanguage()
-    }
-
-    private fun loadCurrentLanguage() {
+        // Загружаем сохранённый язык при инициализации
         viewModelScope.launch {
-            _currentLanguage.value = languageManager.getCurrentLanguage()
-        }
-    }
-
-    fun setLanguage(languageCode: String) {
-        viewModelScope.launch {
-            languageManager.setLanguage(languageCode)
-            _currentLanguage.value = languageCode
+            val saved = languageManager.getCurrentLanguage()
+            _currentLanguage.value = saved
         }
     }
 
     fun getAvailableLanguages(): List<Locale> {
-        return listOf(
-            Locale("en"), // Английский
-            Locale("ru")  // Русский
-        )
+        return listOf(Locale("en"), Locale("ru"))
+    }
+
+    fun setLanguage(language: String, activity: Activity?) {
+        viewModelScope.launch {
+            languageManager.setLanguage(language)
+            _currentLanguage.value = language
+            activity?.recreate() // перезапуск Activity для обновления ресурсов
+        }
     }
 }
