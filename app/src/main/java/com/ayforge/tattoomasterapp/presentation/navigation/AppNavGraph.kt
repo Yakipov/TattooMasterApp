@@ -8,7 +8,6 @@ import androidx.navigation.compose.composable
 import com.ayforge.tattoomasterapp.core.session.SessionManager
 import com.ayforge.tattoomasterapp.presentation.auth.SignInScreen
 import com.ayforge.tattoomasterapp.presentation.auth.SignUpScreen
-import com.ayforge.tattoomasterapp.presentation.navigation.DrawerScreen
 import org.koin.compose.koinInject
 import com.google.firebase.auth.FirebaseAuth
 
@@ -16,9 +15,18 @@ import com.google.firebase.auth.FirebaseAuth
 fun AppNavGraph(
     navController: NavHostController,
     sessionManager: SessionManager = koinInject(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    startDestinationOverride: String? = null // 👈 добавили параметр
 ) {
-    val startDestination = if (sessionManager.isUserSignedIn) "main" else "signin"
+    val isSignedIn = sessionManager.isUserSignedIn
+
+    // Если пользователь авторизован, открываем main (Drawer),
+    // иначе — SignIn. Но если пришли из уведомления, учитываем его.
+    val startDestination = when {
+        !isSignedIn -> "signin"
+        startDestinationOverride == "calendar" -> "main" // внутри main — CalendarScreen
+        else -> "main"
+    }
 
     NavHost(
         navController = navController,
@@ -52,17 +60,16 @@ fun AppNavGraph(
             )
         }
 
-        // --- Main (Drawer + inner navigation) ---
+        // --- Main (Drawer + внутренняя навигация) ---
         composable("main") {
-            // передаём наружный navController чтобы DrawerScreen мог при logout'е вернуться на signin
             DrawerScreen(
                 navController = navController,
                 sessionManager = sessionManager,
                 onLogout = {
-                    // Очистка Firebase производится внутри DrawerScreen через onLogout,
-                    // здесь можем дополнительно делать логику, если нужно.
                     FirebaseAuth.getInstance().signOut()
-                }
+                },
+                // 👇 сюда можно передать метку, чтобы DrawerScreen знал, что нужно открыть Calendar
+                startScreen = startDestinationOverride
             )
         }
     }

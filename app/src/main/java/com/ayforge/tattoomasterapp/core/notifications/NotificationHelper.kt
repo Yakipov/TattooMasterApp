@@ -1,11 +1,17 @@
 package com.ayforge.tattoomasterapp.core.notifications
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import com.ayforge.tattoomasterapp.MainActivity
 import com.ayforge.tattoomasterapp.R
 
 object NotificationHelper {
@@ -45,24 +51,38 @@ object NotificationHelper {
         message: String,
         notificationId: Int
     ) {
+        // ✅ PendingIntent — откроет MainActivity с фокусом на календарь
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("navigate_to", "calendar") // ключ можно обработать в MainActivity/NavGraph
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // TODO: заменить на свой значок
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
 
         val notificationManager = NotificationManagerCompat.from(context)
 
-        if (androidx.core.content.ContextCompat.checkSelfPermission(
+        // ✅ Проверяем разрешение на уведомления (Android 13+)
+        if (ContextCompat.checkSelfPermission(
                 context,
-                android.Manifest.permission.POST_NOTIFICATIONS
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
         ) {
             notificationManager.notify(notificationId, builder.build())
         } else {
-            // Надо допилить
+            android.util.Log.w("NotificationHelper", "Нет разрешения POST_NOTIFICATIONS")
         }
     }
-
 }

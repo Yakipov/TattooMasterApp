@@ -2,7 +2,6 @@
 package com.ayforge.tattoomasterapp.presentation.navigation
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Logout
@@ -21,14 +20,14 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun DrawerScreen(
-    navController: NavHostController,      // внешний / корневой контроллер (AppNavGraph)
+    navController: NavHostController, // внешний (AppNavGraph)
     sessionManager: SessionManager,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    startScreen: String? = null // 👈 добавили параметр
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    // отдельный navController для внутренних экранов
     val innerNavController = rememberNavController()
 
     val items = listOf(
@@ -40,7 +39,17 @@ fun DrawerScreen(
 
     var selectedItem by remember { mutableStateOf(items.first()) }
 
-    // Следим за текущим маршрутом
+    // 👇 Переходим на нужный экран, если указано при запуске
+    LaunchedEffect(startScreen) {
+        startScreen?.let {
+            innerNavController.navigate(it) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+            selectedItem = items.find { item -> item.route == it } ?: items.first()
+        }
+    }
+
     val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 

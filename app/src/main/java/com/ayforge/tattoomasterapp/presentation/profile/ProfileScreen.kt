@@ -11,11 +11,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import com.ayforge.tattoomasterapp.R
+import com.ayforge.tattoomasterapp.core.notifications.TestNotificationWorker
 import com.ayforge.tattoomasterapp.presentation.user.UserViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,6 +135,19 @@ fun ProfileScreen(
             Text(text = "Показать FCM токен (Debug)")
         }
 
+    }
+
+    Button(
+        onClick = {
+            val workRequest: WorkRequest = OneTimeWorkRequestBuilder<TestNotificationWorker>()
+                .setInitialDelay(10, TimeUnit.SECONDS) // через 10 секунд
+                .build()
+
+            WorkManager.getInstance(context).enqueue(workRequest)
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Тест локального уведомления (10с)")
     }
 }
 
