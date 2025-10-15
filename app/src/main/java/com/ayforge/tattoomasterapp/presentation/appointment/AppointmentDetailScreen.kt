@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.ayforge.tattoomasterapp.data.local.entity.ClientEntity
+import com.ayforge.tattoomasterapp.presentation.appointment.components.CompleteAppointmentDialog
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -24,14 +24,15 @@ fun AppointmentDetailScreen(
     viewModel: AppointmentViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
-
     val appointmentWithClient by viewModel.selectedAppointment.collectAsState()
     var isEditing by remember { mutableStateOf(false) }
 
-    // состояние для диалога удаления
+    // состояние для диалогов
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showCompleteDialog by remember { mutableStateOf(false) }
+    var reloadAfterComplete by remember { mutableStateOf(false) }
 
-    // Локальные состояния для редактирования
+    // состояния для редактирования
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -57,9 +58,7 @@ fun AppointmentDetailScreen(
     }
 
     LaunchedEffect(appointmentWithClient, isEditing) {
-        if (!isEditing) {
-            resetEditableStatesToSource()
-        }
+        if (!isEditing) resetEditableStatesToSource()
     }
 
     Scaffold(
@@ -85,7 +84,6 @@ fun AppointmentDetailScreen(
                     if (isEditing) {
                         IconButton(onClick = {
                             val original = appointmentWithClient ?: return@IconButton
-
                             val updatedClient = original.client.copy(
                                 name = name,
                                 phone = phone,
@@ -111,9 +109,7 @@ fun AppointmentDetailScreen(
                         }) {
                             Icon(Icons.Filled.Edit, contentDescription = "Редактировать")
                         }
-                        IconButton(onClick = {
-                            showDeleteDialog = true
-                        }) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Удалить")
                         }
                     }
@@ -132,6 +128,8 @@ fun AppointmentDetailScreen(
             }
             return@Scaffold
         }
+
+        val appointment = appointmentWithClient?.appointment
 
         Column(
             modifier = Modifier
@@ -209,7 +207,50 @@ fun AppointmentDetailScreen(
             ) {
                 Text("Окончание: %02d:%02d".format(endTime.hour, endTime.minute))
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Кнопка завершения встречи
+            if (appointment != null && !isEditing && !appointment.isCompleted) {
+                Button(
+                    onClick = { showCompleteDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Завершить встречу")
+                }
+            }
+
+            // Если встреча уже завершена — показать статус
+            if (appointment?.isCompleted == true) {
+                Text(
+                    text = "Встреча завершена",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
         }
+
+        // Диалог завершения встречи
+        if (showCompleteDialog && appointment != null) {
+            CompleteAppointmentDialog(
+                onDismiss = { showCompleteDialog = false },
+                onConfirm = { amount, method, note ->
+                    viewModel.completeAppointment(appointment.id, amount, method, note)
+                    showCompleteDialog = false
+                    reloadAfterComplete = true // 🔹 отметим, что нужно обновить данные
+                }
+            )
+        }
+
+        // После завершения встречи перезагружаем обновленные данные
+        LaunchedEffect(reloadAfterComplete) {
+            if (reloadAfterComplete && appointment != null) {
+                viewModel.loadAppointmentById(appointment.id)
+                reloadAfterComplete = false
+            }
+        }
+
 
         // Диалог подтверждения удаления
         if (showDeleteDialog) {

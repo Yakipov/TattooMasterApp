@@ -54,4 +54,7 @@ interface AppointmentDao {
 
     @Query("DELETE FROM appointments WHERE userId = :userId AND clientId = :clientId")
     suspend fun deleteAppointmentsByClientId(userId: String, clientId: Long)
+
+    @Query("UPDATE appointments SET isCompleted = 1 WHERE id = :appointmentId")
+    suspend fun markAsCompleted(appointmentId: Long)
 }

@@ -2,16 +2,21 @@ package com.ayforge.tattoomasterapp.data.repository
 
 import com.ayforge.tattoomasterapp.core.session.SessionManager
 import com.ayforge.tattoomasterapp.data.local.dao.AppointmentDao
+import com.ayforge.tattoomasterapp.data.local.dao.IncomeDao
 import com.ayforge.tattoomasterapp.data.local.entity.AppointmentEntity
 import com.ayforge.tattoomasterapp.data.local.entity.AppointmentWithClient
+import com.ayforge.tattoomasterapp.data.local.entity.IncomeEntity
 import com.ayforge.tattoomasterapp.domain.repository.AppointmentRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 class AppointmentRepositoryImpl(
     private val appointmentDao: AppointmentDao,
+    private val incomeDao: IncomeDao,
     private val sessionManager: SessionManager
 ) : AppointmentRepository {
 
@@ -61,4 +66,32 @@ class AppointmentRepositoryImpl(
     override suspend fun deleteAppointmentsByClientId(clientId: Long) {
         appointmentDao.deleteAppointmentsByClientId(currentUserId(), clientId)
     }
+
+    // завершить встречу (с оплатой или без)
+    suspend fun completeAppointment(
+        appointmentId: Long,
+        amount: Double?,
+        paymentMethod: String?,
+        note: String?
+    ) = withContext(Dispatchers.IO) {
+        val userId = sessionManager.userId ?: throw IllegalStateException("User not signed in")
+
+        // Отмечаем встречу как завершённую
+        appointmentDao.markAsCompleted(appointmentId)
+
+        // Если есть сумма — добавляем доход
+        if (amount != null && amount > 0) {
+            val income = IncomeEntity(
+                appointmentId = appointmentId,
+                amount = amount,
+                method = paymentMethod ?: "Не указано",
+                note = note,
+                createdAt = LocalDateTime.now(),
+                userId = userId // теперь точно String, не nullable
+            )
+            incomeDao.insert(income)
+        }
+    }
+
+
 }

@@ -11,5 +11,6 @@ data class AppointmentEntity(
     val startTime: LocalDateTime,
     val endTime: LocalDateTime,
     val description: String?,
-    val userId: String
+    val userId: String,
+    val isCompleted: Boolean = false
 )

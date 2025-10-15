@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ayforge.tattoomasterapp.data.local.entity.AppointmentEntity
 import com.ayforge.tattoomasterapp.data.local.entity.AppointmentWithClient
 import com.ayforge.tattoomasterapp.data.local.entity.ClientEntity
+import com.ayforge.tattoomasterapp.data.repository.AppointmentRepositoryImpl
 import com.ayforge.tattoomasterapp.domain.repository.AppointmentRepository
 import com.ayforge.tattoomasterapp.domain.repository.ClientRepository
 import kotlinx.coroutines.flow.*
@@ -160,4 +161,21 @@ class AppointmentViewModel(
             start < appt.endTime && end > appt.startTime
         }
     }
+
+    fun completeAppointment(
+        appointmentId: Long,
+        amount: Double?,
+        paymentMethod: String?,
+        note: String?
+    ) {
+        viewModelScope.launch {
+            (appointmentRepository as? AppointmentRepositoryImpl)?.completeAppointment(
+                appointmentId = appointmentId,
+                amount = amount,
+                paymentMethod = paymentMethod,
+                note = note
+            )
+        }
+    }
+
 }
