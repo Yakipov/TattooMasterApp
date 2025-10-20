@@ -15,6 +15,7 @@ import com.ayforge.tattoomasterapp.presentation.auth.SignUpViewModel
 import com.ayforge.tattoomasterapp.presentation.clients.ClientDetailViewModel
 import com.ayforge.tattoomasterapp.presentation.clients.ClientViewModel
 import com.ayforge.tattoomasterapp.presentation.home.HomeViewModel
+import com.ayforge.tattoomasterapp.presentation.income.IncomesViewModel
 import com.ayforge.tattoomasterapp.presentation.profile.LanguageViewModel
 import com.ayforge.tattoomasterapp.presentation.profile.ProfileViewModel
 import com.ayforge.tattoomasterapp.presentation.user.UserViewModel
@@ -79,4 +80,6 @@ val appModule = module {
     viewModel { AppointmentViewModel(get(), get()) }
     viewModel { ClientViewModel(get()) }
     viewModel { ClientDetailViewModel(get(), get()) }
+    viewModel { IncomesViewModel(get()) }
+
 }

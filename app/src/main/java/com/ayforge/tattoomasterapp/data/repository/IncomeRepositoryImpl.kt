@@ -3,6 +3,7 @@ package com.ayforge.tattoomasterapp.data.repository
 import com.ayforge.tattoomasterapp.core.session.SessionManager
 import com.ayforge.tattoomasterapp.data.local.dao.IncomeDao
 import com.ayforge.tattoomasterapp.data.local.entity.IncomeEntity
+import com.ayforge.tattoomasterapp.data.local.entity.IncomeWithClient
 import com.ayforge.tattoomasterapp.domain.model.Income
 import com.ayforge.tattoomasterapp.domain.repository.IncomeRepository
 import java.time.*
@@ -15,27 +16,36 @@ class IncomeRepositoryImpl(
     private fun currentUserId(): String =
         sessionManager.userId ?: throw IllegalStateException("User not signed in")
 
-    // Маппинг: Domain → Entity
+    // ---------- Маппинг ----------
     private fun Income.toEntity(userId: String) = IncomeEntity(
-        id = id,
-        appointmentId = appointmentId,
-        amount = amount,
-        method = paymentMethod,
-        note = note,
-        createdAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(date), ZoneOffset.UTC),
-        userId = userId
-    )
-
-    // Маппинг: Entity → Domain
-    private fun IncomeEntity.toDomain() = Income(
         id = id,
         appointmentId = appointmentId ?: 0,
         amount = amount,
-        paymentMethod = method ?: "",
+        method = paymentMethod,
         note = note,
-        date = createdAt.toInstant(ZoneOffset.UTC).toEpochMilli()
+        createdAt = date, // теперь тип совпадает (LocalDateTime)
+        userId = userId
     )
 
+    private fun IncomeWithClient.toDomain(): Income {
+        val income = this.income
+        val appointment = this.appointmentWithClient?.appointment
+        val client = this.appointmentWithClient?.client
+
+        return Income(
+            id = income.id,
+            appointmentId = income.appointmentId,
+            amount = income.amount,
+            paymentMethod = income.method ?: "",
+            note = income.note,
+            date = income.createdAt, // LocalDateTime напрямую
+            clientName = client?.name,
+            clientPhone = client?.phone,
+            completedAt = appointment?.endTime?.atZone(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
+        )
+    }
+
+    // ---------- CRUD ----------
     override suspend fun insert(income: Income) {
         incomeDao.insert(income.toEntity(currentUserId()))
     }
@@ -46,11 +56,10 @@ class IncomeRepositoryImpl(
 
     override suspend fun getByDate(date: String): List<Income> {
         val userId = currentUserId()
-        // Преобразуем строку (yyyy-MM-dd) в диапазон начала/конца дня
         val localDate = LocalDate.parse(date)
         val start = localDate.atStartOfDay()
         val end = localDate.plusDays(1).atStartOfDay()
-        return incomeDao.getByDate(userId, start, end).map { it.toDomain() }
+        return incomeDao.getByPeriod(userId, start, end).map { it.toDomain() }
     }
 
     override suspend fun deleteById(id: Long) {
@@ -58,7 +67,8 @@ class IncomeRepositoryImpl(
     }
 
     override suspend fun getByAppointmentId(appointmentId: Long): Income? {
-        val all = incomeDao.getAllByUser(currentUserId())
-        return all.firstOrNull { it.appointmentId == appointmentId }?.toDomain()
+        return incomeDao.getAllByUser(currentUserId())
+            .firstOrNull { it.income.appointmentId == appointmentId }
+            ?.toDomain()
     }
 }

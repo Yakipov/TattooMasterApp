@@ -3,6 +3,7 @@ package com.ayforge.tattoomasterapp.presentation.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
@@ -32,10 +33,12 @@ fun DrawerScreen(
 
     val items = listOf(
         DrawerItem("calendar", "Календарь", Icons.Filled.CalendarToday),
-        DrawerItem("profile", "Профиль", Icons.Filled.Person),
+        DrawerItem("incomes", "Доходы", Icons.Filled.AttachMoney), // 🟢 добавили сюда
         DrawerItem("clients", "Клиенты", Icons.Filled.People),
+        DrawerItem("profile", "Профиль", Icons.Filled.Person),
         DrawerItem("logout", "Выход", Icons.Filled.Logout)
     )
+
 
     var selectedItem by remember { mutableStateOf(items.first()) }
 

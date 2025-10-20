@@ -14,6 +14,7 @@ import com.ayforge.tattoomasterapp.presentation.appointment.AppointmentDetailScr
 import com.ayforge.tattoomasterapp.presentation.clients.ClientsScreen
 import com.ayforge.tattoomasterapp.presentation.clients.ClientDetailScreen
 import com.ayforge.tattoomasterapp.presentation.clients.EditClientScreen
+import com.ayforge.tattoomasterapp.presentation.income.IncomesScreen
 import com.ayforge.tattoomasterapp.presentation.profile.ProfileScreen
 import java.time.LocalDate
 import java.time.LocalTime
@@ -105,5 +106,11 @@ fun InnerNavGraph(
         composable("profile") {
             ProfileScreen(navController = navController)
         }
+
+        // Incomes
+        composable("incomes") {
+            IncomesScreen(navController = navController)
+        }
+
     }
 }

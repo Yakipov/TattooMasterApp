@@ -19,7 +19,7 @@ import com.ayforge.tattoomasterapp.data.local.entity.PaymentMethodEntity
         IncomeEntity::class,
         PaymentMethodEntity::class
     ],
-    version = 6, // ← увеличиваем версию
+    version = 8, // ← увеличиваем версию
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)
