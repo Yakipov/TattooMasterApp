@@ -1,6 +1,8 @@
 package com.ayforge.tattoomasterapp.di
 
+import android.app.Application
 import androidx.room.Room
+import com.ayforge.tattoomasterapp.core.notifications.AppointmentReminderRescheduler
 import com.ayforge.tattoomasterapp.core.session.SessionManager
 import com.ayforge.tattoomasterapp.core.settings.LanguageManager
 import com.ayforge.tattoomasterapp.core.settings.SettingsDataStore
@@ -17,6 +19,7 @@ import com.ayforge.tattoomasterapp.presentation.clients.ClientViewModel
 import com.ayforge.tattoomasterapp.presentation.home.HomeViewModel
 import com.ayforge.tattoomasterapp.presentation.income.IncomesViewModel
 import com.ayforge.tattoomasterapp.presentation.profile.LanguageViewModel
+import com.ayforge.tattoomasterapp.presentation.profile.NotificationSettingsViewModel
 import com.ayforge.tattoomasterapp.presentation.profile.ProfileViewModel
 import com.ayforge.tattoomasterapp.presentation.user.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -25,19 +28,26 @@ import org.koin.dsl.module
 
 val appModule = module {
 
-    // Firebase + UserRepository
+    // Firebase
     single { FirebaseAuth.getInstance() }
-    single<UserRepository> { UserRepositoryImpl(firebaseAuth = get(), context = get()) }
 
     // Core
     single { SessionManager(get()) }
     single { SettingsDataStore(context = get()) }
     single { LanguageManager(get()) }
 
-    // База данных — простая
+    // UserRepository
+    single<UserRepository> {
+        UserRepositoryImpl(
+            firebaseAuth = get(),
+            context = get()
+        )
+    }
+
+    // Database
     single {
         Room.databaseBuilder(
-            get<android.content.Context>(),
+            get(),
             TattooMasterDatabase::class.java,
             "tattoo_master.db"
         )
@@ -62,8 +72,17 @@ val appModule = module {
         )
     }
 
-    single<IncomeRepository> { IncomeRepositoryImpl(get(), get()) }
+    single {
+        AppointmentReminderRescheduler(
+            context = get<Application>(),
+            appointmentRepository = get(),
+            settingsDataStore = get()
+        )
+    }
 
+
+
+    single<IncomeRepository> { IncomeRepositoryImpl(get(), get()) }
     single<PaymentMethodRepository> { PaymentMethodRepositoryImpl(get(), get()) }
 
     // UseCases
@@ -72,14 +91,27 @@ val appModule = module {
 
     // ViewModels
     viewModel { UserViewModel(get()) }
-    viewModel { HomeViewModel(get()) }
+    viewModel {
+        HomeViewModel(
+            userRepository = get(),
+            reminderRescheduler = get()
+        )
+    }
     viewModel { SignUpViewModel(get(), get()) }
     viewModel { SignInViewModel(firebaseAuth = get(), sessionManager = get()) }
-    viewModel { ProfileViewModel(firebaseAuth = get(), sessionManager = get()) }
+    viewModel {
+        ProfileViewModel(
+            firebaseAuth = get(),
+            sessionManager = get(),
+            settingsDataStore = get()
+        )
+    }
     viewModel { LanguageViewModel(get()) }
-    viewModel { AppointmentViewModel(get(), get()) }
+    viewModel { AppointmentViewModel(get(), get(), get()) }
     viewModel { ClientViewModel(get()) }
     viewModel { ClientDetailViewModel(get(), get()) }
     viewModel { IncomesViewModel(get()) }
+    viewModel { NotificationSettingsViewModel(get()) }
+
 
 }

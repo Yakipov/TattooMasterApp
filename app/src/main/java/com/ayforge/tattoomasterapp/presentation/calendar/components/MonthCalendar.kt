@@ -21,6 +21,21 @@ import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.*
 
+
+private const val MAX_BARS = 4
+
+@Composable
+private fun loadColor(appointmentsCount: Int): Color {
+    return when {
+        appointmentsCount >= 7 -> Color(0xFFD32F2F) // красный
+        appointmentsCount >= 5 -> Color(0xFFFBC02D) // жёлтый
+        appointmentsCount >= 3 -> Color(0xFF388E3C) // зелёный
+        appointmentsCount >= 1 -> Color(0xFF1976D2) // синий
+        else -> Color.Transparent
+    }
+}
+
+
 @Composable
 fun MonthCalendar(
     selectedDate: LocalDate = LocalDate.now(),
@@ -31,21 +46,30 @@ fun MonthCalendar(
     val firstOfMonth = selectedDate.withDayOfMonth(1)
     val yearMonth = YearMonth.from(firstOfMonth)
 
-    // Понедельник — первый день
-    val firstDayOfWeek = firstOfMonth.dayOfWeek.value.let { if (it == 7) 0 else it }
-    val offset = if (firstDayOfWeek == 0) 6 else firstDayOfWeek - 1
+    // Понедельник = 0, воскресенье = 6
+    val offset = (firstOfMonth.dayOfWeek.value + 6) % 7
 
     // 6 недель * 7 дней — как в Google
     val totalDays = 42
     val startDate = firstOfMonth.minusDays(offset.toLong())
     val dates = List(totalDays) { startDate.plusDays(it.toLong()) }
 
+
+
     Column(modifier = Modifier.fillMaxSize()) {
 
         // Заголовки дней недели
         Row(modifier = Modifier.fillMaxWidth()) {
-            DayOfWeek.values().drop(1).plus(DayOfWeek.SUNDAY).forEach { day ->
-                Box(
+            listOf(
+                DayOfWeek.MONDAY,
+                DayOfWeek.TUESDAY,
+                DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY,
+                DayOfWeek.FRIDAY,
+                DayOfWeek.SATURDAY,
+                DayOfWeek.SUNDAY
+            ).forEach { day ->
+            Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
@@ -96,16 +120,34 @@ fun MonthCalendar(
                             modifier = Modifier.padding(top = 6.dp)
                         )
 
-// Вместо точки — количество встреч
+// полоски загрузки
                         if (appointments.isNotEmpty()) {
-                            Text(
-                                text = appointments.size.toString(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
+                            val barsCount = minOf(appointments.size, MAX_BARS)
+                            val color = loadColor(appointments.size)
+
+                            // --- НАЧАЛО ИЗМЕНЕНИЙ ---
+
+                            Column(
                                 modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 4.dp)
-                            )
+                                    .align(Alignment.BottomCenter) // Прижимаем к низу ячейки
+                                    .fillMaxWidth()              // 👈 1. ЗАСТАВЛЯЕМ КОЛОНКУ РАСТЯНУТЬСЯ НА ВСЮ ШИРИНУ
+                                    .padding(bottom = 4.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.Bottom),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                repeat(barsCount) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(4.dp) // Можно сделать чуть выше для лучшего эффекта
+                                            .background(
+                                                color = color,
+                                                shape = CircleShape // 👈 ИЗМЕНЕНИЕ ЗДЕСЬ
+                                            )
+                                    )
+                                }
+                            }
+                            // --- КОНЕЦ ИЗМЕНЕНИЙ ---
                         }
                     }
                 }

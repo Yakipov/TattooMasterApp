@@ -3,39 +3,50 @@ package com.ayforge.tattoomasterapp.presentation.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import androidx.navigation.NavType
-import com.ayforge.tattoomasterapp.presentation.calendar.CalendarScreen
-import com.ayforge.tattoomasterapp.presentation.calendar.DayScreen
-import com.ayforge.tattoomasterapp.presentation.appointment.CreateAppointmentScreen
-import com.ayforge.tattoomasterapp.presentation.appointment.AppointmentDetailScreen
-import com.ayforge.tattoomasterapp.presentation.clients.ClientsScreen
-import com.ayforge.tattoomasterapp.presentation.clients.ClientDetailScreen
-import com.ayforge.tattoomasterapp.presentation.clients.EditClientScreen
+import com.ayforge.tattoomasterapp.presentation.appointment.*
+import com.ayforge.tattoomasterapp.presentation.calendar.*
+import com.ayforge.tattoomasterapp.presentation.clients.*
 import com.ayforge.tattoomasterapp.presentation.income.IncomesScreen
-import com.ayforge.tattoomasterapp.presentation.profile.ProfileScreen
+import com.ayforge.tattoomasterapp.presentation.profile.*
 import java.time.LocalDate
 import java.time.LocalTime
 
 @Composable
 fun InnerNavGraph(
     navController: NavHostController,
+    startDestination: String,
     modifier: Modifier = Modifier
 ) {
     NavHost(
         navController = navController,
-        startDestination = "calendar",
+        startDestination = startDestination,
         modifier = modifier
     ) {
         composable("calendar") {
-            // CalendarScreen должен использовать переданный коллбек для перехода в день
-            CalendarScreen(
-                onDayClick = { date ->
-                    navController.navigate("day/$date")
-                }
-            )
+            CalendarScreen { date ->
+                navController.navigate("day/$date")
+            }
+        }
+
+        composable("clients") {
+            ClientsScreen(navController)
+        }
+
+        composable("profile") {
+            ProfileScreen(navController = navController)
+        }
+
+        // Добавьте сюда composable("notification_settings"), если еще не сделали
+        composable("notification_settings") {
+            NotificationSettingsScreen(navController = navController)
+        }
+
+        composable("incomes") {
+            IncomesScreen(navController)
         }
 
         composable(
@@ -51,18 +62,24 @@ fun InnerNavGraph(
             )
         }
 
-        // Create appointment (date, optional time)
+        // Маршрут для создания новой встречи (с необязательным временем)
         composable(
             route = "appointment/new?date={date}&time={time}",
             arguments = listOf(
-                navArgument("date") { type = NavType.StringType },
-                navArgument("time") { type = NavType.StringType; defaultValue = "" }
+                navArgument("date") {
+                    type = NavType.StringType
+                },
+                navArgument("time") {
+                    type = NavType.StringType
+                    nullable = true // Время может быть не указано
+                }
             )
         ) { backStackEntry ->
-            val dateStr = backStackEntry.arguments?.getString("date") ?: LocalDate.now().toString()
+            val dateStr = backStackEntry.arguments?.getString("date")
             val timeStr = backStackEntry.arguments?.getString("time")
-            val date = LocalDate.parse(dateStr)
-            val time = timeStr?.takeIf { it.isNotEmpty() }?.let { LocalTime.parse(it) }
+
+            val date = dateStr?.let { LocalDate.parse(it) } ?: LocalDate.now()
+            val time = timeStr?.let { LocalTime.parse(it) }
 
             CreateAppointmentScreen(
                 navController = navController,
@@ -71,46 +88,16 @@ fun InnerNavGraph(
             )
         }
 
-        // Appointment detail
+        // Маршрут для деталей существующей встречи
         composable(
             route = "appointment/{id}",
             arguments = listOf(navArgument("id") { type = NavType.LongType })
         ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getLong("id") ?: 0L
-            AppointmentDetailScreen(navController = navController, appointmentId = id)
+            val appointmentId = backStackEntry.arguments?.getLong("id") ?: 0L
+            AppointmentDetailScreen(
+                navController = navController,
+                appointmentId = appointmentId
+            )
         }
-
-        // Clients list
-        composable("clients") {
-            ClientsScreen(navController = navController)
-        }
-
-        // Client detail + edit
-        composable(
-            route = "clientDetail/{clientId}",
-            arguments = listOf(navArgument("clientId") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val clientId = backStackEntry.arguments?.getLong("clientId") ?: 0L
-            ClientDetailScreen(navController = navController, clientId = clientId)
-        }
-
-        composable(
-            route = "edit_client/{clientId}",
-            arguments = listOf(navArgument("clientId") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val clientId = backStackEntry.arguments?.getLong("clientId") ?: 0L
-            EditClientScreen(clientId = clientId, navController = navController)
-        }
-
-        // Profile
-        composable("profile") {
-            ProfileScreen(navController = navController)
-        }
-
-        // Incomes
-        composable("incomes") {
-            IncomesScreen(navController = navController)
-        }
-
     }
 }

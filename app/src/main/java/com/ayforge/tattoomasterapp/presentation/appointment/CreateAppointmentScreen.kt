@@ -225,7 +225,8 @@ fun CreateAppointmentScreen(
                             client = existing,
                             startTime = startDateTime,
                             endTime = endDateTime,
-                            description = description
+                            description = description,
+                            context = context
                         )
                     } else {
                         val newClient = ClientEntity(
@@ -239,7 +240,8 @@ fun CreateAppointmentScreen(
                             client = newClient,
                             startTime = startDateTime,
                             endTime = endDateTime,
-                            description = description
+                            description = description,
+                            context = context
                         )
                     }
 

@@ -24,6 +24,7 @@ fun AppointmentDetailScreen(
     viewModel: AppointmentViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
+
     val appointmentWithClient by viewModel.selectedAppointment.collectAsState()
     var isEditing by remember { mutableStateOf(false) }
 
@@ -97,7 +98,11 @@ fun AppointmentDetailScreen(
                                 description = description.takeIf { it.isNotBlank() }
                             )
 
-                            viewModel.updateAppointment(updatedAppointment, updatedClient)
+                            viewModel.updateAppointment(
+                                appointment = updatedAppointment,
+                                client = updatedClient,
+                                context = context
+                            )
                             isEditing = false
                         }) {
                             Icon(Icons.Filled.Done, contentDescription = "Сохранить")
@@ -261,7 +266,8 @@ fun AppointmentDetailScreen(
                 confirmButton = {
                     TextButton(onClick = {
                         appointmentWithClient?.appointment?.let {
-                            viewModel.deleteAppointment(it)
+                            // ДОБАВЬ CONTEXT ЗДЕСЬ 👇
+                            viewModel.deleteAppointment(it, context)
                             navController.popBackStack()
                         }
                         showDeleteDialog = false

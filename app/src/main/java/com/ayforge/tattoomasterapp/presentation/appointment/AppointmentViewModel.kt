@@ -1,7 +1,10 @@
 package com.ayforge.tattoomasterapp.presentation.appointment
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ayforge.tattoomasterapp.core.notifications.AppointmentNotificationScheduler
+import com.ayforge.tattoomasterapp.core.settings.SettingsDataStore
 import com.ayforge.tattoomasterapp.data.local.entity.AppointmentEntity
 import com.ayforge.tattoomasterapp.data.local.entity.AppointmentWithClient
 import com.ayforge.tattoomasterapp.data.local.entity.ClientEntity
@@ -13,6 +16,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
+import kotlinx.coroutines.flow.first
 
 sealed class ClientCheckResult {
     data class ExistingClient(val client: ClientEntity) : ClientCheckResult()
@@ -21,8 +25,14 @@ sealed class ClientCheckResult {
 
 class AppointmentViewModel(
     private val clientRepository: ClientRepository,
-    private val appointmentRepository: AppointmentRepository
+    private val appointmentRepository: AppointmentRepository,
+    private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
+
+
+    private val reminderEnabledFlow = settingsDataStore.reminderEnabled
+    private val reminderMinutesFlow = settingsDataStore.reminderMinutesBefore
+
 
     private val _clientCheckResult = MutableStateFlow<ClientCheckResult?>(null)
     val clientCheckResult: StateFlow<ClientCheckResult?> = _clientCheckResult
@@ -53,9 +63,11 @@ class AppointmentViewModel(
         client: ClientEntity,
         startTime: LocalDateTime,
         endTime: LocalDateTime,
-        description: String?
+        description: String?,
+        context: Context
     ) {
         viewModelScope.launch {
+
             val clientId = if (client.id == 0L) {
                 clientRepository.insert(client)
             } else {
@@ -67,27 +79,50 @@ class AppointmentViewModel(
                 startTime = startTime,
                 endTime = endTime,
                 description = description,
-                userId = "" // временно пустой, репозиторий заменит на currentUserId()
+                userId = "" // временно
             )
 
+            val insertedId = appointmentRepository.insert(appointment)
 
-            appointmentRepository.insert(appointment)
+            //  читаем настройки
+            val reminderEnabled = reminderEnabledFlow.first()
+            val minutesBefore = reminderMinutesFlow.first()
 
-            // обновляем месяц и день
+            //  планируем уведомление
+            if (reminderEnabled) {
+                AppointmentNotificationScheduler.scheduleReminder(
+                    context = context,
+                    appointmentId = insertedId,
+                    appointmentTitle = description ?: "Без описания",
+                    startTimeMillis = startTime
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli(),
+                    minutesBefore = minutesBefore
+                )
+            }
+
+            // обновляем UI
             loadAppointmentsForMonth(YearMonth.from(startTime.toLocalDate()))
             loadAppointmentsForDay(startTime.toLocalDate())
         }
     }
 
-    fun deleteAppointment(appointment: AppointmentEntity) {
+
+    fun deleteAppointment(appointment: AppointmentEntity, context: Context) {
         viewModelScope.launch {
             appointmentRepository.delete(appointment)
             _selectedAppointment.value = null
+
+            // отменяем уведомление
+            AppointmentNotificationScheduler.cancelReminder(context, appointment.id)
+
             // обновляем месяц и день
             loadAppointmentsForMonth(YearMonth.from(appointment.startTime.toLocalDate()))
             loadAppointmentsForDay(appointment.startTime.toLocalDate())
         }
     }
+
 
     fun clearClientCheck() {
         _clientCheckResult.value = null
@@ -125,9 +160,11 @@ class AppointmentViewModel(
 
     fun updateAppointment(
         appointment: AppointmentEntity,
-        client: ClientEntity
+        client: ClientEntity,
+        context: Context
     ) {
         viewModelScope.launch {
+
             val clientId = if (client.id == 0L) {
                 clientRepository.insert(client)
             } else {
@@ -137,7 +174,7 @@ class AppointmentViewModel(
 
             val apptToSave = appointment.copy(
                 clientId = clientId,
-                userId = "" // заглушка, репозиторий всё равно заменит
+                userId = ""
             )
 
             if (apptToSave.id == 0L) {
@@ -146,12 +183,39 @@ class AppointmentViewModel(
                 appointmentRepository.update(apptToSave)
             }
 
-            // обновляем selected и списки
-            _selectedAppointment.value = appointmentRepository.getAppointmentWithClientById(apptToSave.id)
+            // отменяем старое уведомление
+            AppointmentNotificationScheduler.cancelReminder(
+                context = context,
+                appointmentId = apptToSave.id
+            )
+
+            // ⚙ читаем настройки
+            val reminderEnabled = reminderEnabledFlow.first()
+            val minutesBefore = reminderMinutesFlow.first()
+
+            // создаём новое уведомление
+            if (reminderEnabled) {
+                AppointmentNotificationScheduler.scheduleReminder(
+                    context = context,
+                    appointmentId = apptToSave.id,
+                    appointmentTitle = apptToSave.description ?: "Без описания",
+                    startTimeMillis = apptToSave.startTime
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli(),
+                    minutesBefore = minutesBefore
+                )
+            }
+
+            // обновляем UI
+            _selectedAppointment.value =
+                appointmentRepository.getAppointmentWithClientById(apptToSave.id)
+
             loadAppointmentsForMonth(YearMonth.from(apptToSave.startTime.toLocalDate()))
             loadAppointmentsForDay(apptToSave.startTime.toLocalDate())
         }
     }
+
 
     fun hasOverlap(start: LocalDateTime, end: LocalDateTime, ignoreId: Long? = null): Boolean {
         val list = appointmentsForDay.value

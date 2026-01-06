@@ -16,7 +16,7 @@ fun AppNavGraph(
     navController: NavHostController,
     sessionManager: SessionManager = koinInject(),
     modifier: Modifier = Modifier,
-    startDestinationOverride: String? = null // 👈 добавили параметр
+    startDestinationOverride: String? = null
 ) {
     val isSignedIn = sessionManager.isUserSignedIn
 
@@ -67,10 +67,16 @@ fun AppNavGraph(
                 sessionManager = sessionManager,
                 onLogout = {
                     FirebaseAuth.getInstance().signOut()
+                    // Также здесь можно добавить sessionManager.clearSession()
                 },
-                // 👇 сюда можно передать метку, чтобы DrawerScreen знал, что нужно открыть Calendar
+                // сюда можно передать метку, чтобы DrawerScreen знал, что нужно открыть Calendar
                 startScreen = startDestinationOverride
             )
         }
+
+        // --- БЛОК УБРАН ---
+        // composable("notification_settings") {
+        //     NotificationSettingsScreen(navController = navController)
+        // }
     }
 }

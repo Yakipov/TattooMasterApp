@@ -93,5 +93,12 @@ class AppointmentRepositoryImpl(
         }
     }
 
+    override fun getFutureAppointments(
+        now: LocalDateTime
+    ): Flow<List<AppointmentEntity>> {
+        return appointmentDao.getAppointmentsAfter(now)
+    }
+
+
 
 }

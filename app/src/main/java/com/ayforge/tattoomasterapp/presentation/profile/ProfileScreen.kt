@@ -9,18 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.WorkRequest
 import com.ayforge.tattoomasterapp.R
-import com.ayforge.tattoomasterapp.core.notifications.TestNotificationWorker
 import com.ayforge.tattoomasterapp.presentation.user.UserViewModel
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,11 +24,11 @@ fun ProfileScreen(
     navController: NavHostController
 ) {
     val user by profileViewModel.userState.collectAsState()
+    val reminderEnabled by profileViewModel.reminderEnabled.collectAsState()
+    val reminderMinutesBefore by profileViewModel.reminderMinutesBefore.collectAsState()
+
     val currentLanguage by languageViewModel.currentLanguage.collectAsState()
     val availableLanguages = languageViewModel.getAvailableLanguages()
-
-    var darkTheme by remember { mutableStateOf(false) }
-    var notificationsEnabled by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
     val activity = context as Activity
@@ -46,12 +39,13 @@ fun ProfileScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.Top
     ) {
-        // ---------- Блок пользователя ----------
+        // ---------- Профиль ----------
         Text(
             text = stringResource(R.string.profile_section_title),
             style = MaterialTheme.typography.titleLarge
         )
         Spacer(modifier = Modifier.height(8.dp))
+
         Text(
             text = stringResource(R.string.profile_email, user?.email ?: "Гость"),
             style = MaterialTheme.typography.bodyLarge
@@ -59,29 +53,11 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // ---------- Блок настроек ----------
+        // ---------- Язык приложения ----------
         Text(
-            text = stringResource(R.string.settings_section_title),
-            style = MaterialTheme.typography.titleLarge
+            text = stringResource(R.string.language),
+            style = MaterialTheme.typography.titleMedium
         )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Тема
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = stringResource(R.string.settings_theme), modifier = Modifier.weight(1f))
-            Switch(
-                checked = darkTheme,
-                onCheckedChange = { darkTheme = it }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // ---------- Язык ----------
-        Text(text = stringResource(R.string.language))
         Spacer(modifier = Modifier.height(8.dp))
 
         LanguageSelector(
@@ -92,18 +68,72 @@ fun ProfileScreen(
             }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // Уведомления
+        // ---------- Уведомления о встречах ----------
+        Text(
+            text = "Напоминания о встречах",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = stringResource(R.string.settings_notifications), modifier = Modifier.weight(1f))
+            Text("Уведомлять о встречах", modifier = Modifier.weight(1f))
             Switch(
-                checked = notificationsEnabled,
-                onCheckedChange = { notificationsEnabled = it }
+                checked = reminderEnabled,
+                onCheckedChange = { profileViewModel.setReminderEnabled(it) }
             )
+        }
+
+        Button(
+            onClick = {
+                navController.navigate("notification_settings")
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Настройки уведомлений")
+        }
+
+        if (reminderEnabled) {
+            Spacer(modifier = Modifier.height(12.dp))
+            var expanded by remember { mutableStateOf(false) }
+            val options = listOf(5, 10, 30, 60, 120)
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    readOnly = true,
+                    value = "$reminderMinutesBefore минут",
+                    onValueChange = {},
+                    label = { Text("За сколько минут до встречи") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    options.forEach { minutes ->
+                        DropdownMenuItem(
+                            text = { Text("$minutes минут") },
+                            onClick = {
+                                profileViewModel.setReminderMinutes(minutes)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -111,7 +141,8 @@ fun ProfileScreen(
         // ---------- Logout ----------
         Button(
             onClick = {
-                profileViewModel.logout()
+                profileViewModel.logout(context)
+
                 navController.navigate("signin") {
                     popUpTo("home") { inclusive = true }
                     launchSingleTop = true
@@ -121,33 +152,6 @@ fun ProfileScreen(
         ) {
             Text(text = stringResource(R.string.logout))
         }
-
-        // ---------- Debug FCM ----------
-        Button(
-            onClick = {
-                userViewModel.saveFcmToken("TEST_TOKEN_UI")
-                userViewModel.getFcmToken { token: String? ->
-                    android.util.Log.d("ProfileScreen", "FCM token from DataStore = $token")
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = "Показать FCM токен (Debug)")
-        }
-
-    }
-
-    Button(
-        onClick = {
-            val workRequest: WorkRequest = OneTimeWorkRequestBuilder<TestNotificationWorker>()
-                .setInitialDelay(10, TimeUnit.SECONDS) // через 10 секунд
-                .build()
-
-            WorkManager.getInstance(context).enqueue(workRequest)
-        },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("Тест локального уведомления (10с)")
     }
 }
 
