@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import com.ayforge.tattoomasterapp.core.session.SessionManager
 import com.ayforge.tattoomasterapp.presentation.auth.SignInScreen
 import com.ayforge.tattoomasterapp.presentation.auth.SignUpScreen
+import com.ayforge.tattoomasterapp.presentation.permissions.NotificationPermissionScreen
 import org.koin.compose.koinInject
 import com.google.firebase.auth.FirebaseAuth
 
@@ -71,6 +72,16 @@ fun AppNavGraph(
                 },
                 // сюда можно передать метку, чтобы DrawerScreen знал, что нужно открыть Calendar
                 startScreen = startDestinationOverride
+            )
+        }
+
+        composable("notification_permission") {
+            NotificationPermissionScreen(
+                onNext = {
+                    navController.navigate("main") {
+                        popUpTo("notification_permission") { inclusive = true }
+                    }
+                }
             )
         }
 

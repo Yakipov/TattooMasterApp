@@ -70,4 +70,18 @@ interface AppointmentDao {
 """)
     fun getAppointmentsAfter(now: LocalDateTime): Flow<List<AppointmentEntity>>
 
+
+    @Query("""
+    SELECT * FROM appointments
+    WHERE userId = :userId
+      AND startTime > :now
+      AND isCompleted = 0
+""")
+    fun getFutureAppointments(
+        userId: String,
+        now: LocalDateTime
+    ): Flow<List<AppointmentEntity>>
+
 }
+
+

@@ -25,7 +25,6 @@ fun ProfileScreen(
 ) {
     val user by profileViewModel.userState.collectAsState()
     val reminderEnabled by profileViewModel.reminderEnabled.collectAsState()
-    val reminderMinutesBefore by profileViewModel.reminderMinutesBefore.collectAsState()
 
     val currentLanguage by languageViewModel.currentLanguage.collectAsState()
     val availableLanguages = languageViewModel.getAvailableLanguages()
@@ -97,54 +96,15 @@ fun ProfileScreen(
             Text("Настройки уведомлений")
         }
 
-        if (reminderEnabled) {
-            Spacer(modifier = Modifier.height(12.dp))
-            var expanded by remember { mutableStateOf(false) }
-            val options = listOf(5, 10, 30, 60, 120)
-
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
-            ) {
-                OutlinedTextField(
-                    readOnly = true,
-                    value = "$reminderMinutesBefore минут",
-                    onValueChange = {},
-                    label = { Text("За сколько минут до встречи") },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                    },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
-                )
-
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    options.forEach { minutes ->
-                        DropdownMenuItem(
-                            text = { Text("$minutes минут") },
-                            onClick = {
-                                profileViewModel.setReminderMinutes(minutes)
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
         // ---------- Logout ----------
         Button(
             onClick = {
-                profileViewModel.logout(context)
+                // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+                profileViewModel.logout() // Убираем (context) отсюда
 
                 navController.navigate("signin") {
-                    popUpTo("home") { inclusive = true }
+                    // popUpTo("home") { inclusive = true } // Заменено на "main"
+                    popUpTo("main") { inclusive = true } // Правильный граф для выхода
                     launchSingleTop = true
                 }
             },

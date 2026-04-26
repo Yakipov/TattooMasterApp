@@ -11,8 +11,11 @@ import androidx.core.app.ActivityCompat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.navigation.compose.rememberNavController
+import com.ayforge.tattoomasterapp.core.notifications.NotificationHelper
+import com.ayforge.tattoomasterapp.core.notifications.NotificationPermissionHelper
 import com.ayforge.tattoomasterapp.core.session.SessionManager
 import com.ayforge.tattoomasterapp.core.settings.LanguageManager
+import com.ayforge.tattoomasterapp.core.utils.DeviceHelper
 import com.ayforge.tattoomasterapp.presentation.navigation.AppNavGraph
 import com.ayforge.tattoomasterapp.ui.theme.TattooMasterAppTheme
 
@@ -55,6 +58,10 @@ class MainActivity : ComponentActivity() {
         languageManager = LanguageManager(this)
         val sessionManager = SessionManager(this)
 
+        // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+        // Вызываем новый метод, который создает все каналы
+        NotificationHelper.createChannels(this)
+
         // Получаем extra от NotificationHelper
         val startDestinationFromIntent =
             intent?.getStringExtra("startDestination") ?: "calendar"
@@ -70,6 +77,22 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+
+        val context = this
+
+        val notificationsEnabled =
+            NotificationPermissionHelper.areNotificationsEnabled(context)
+
+        val batteryOk =
+            NotificationPermissionHelper.isBatteryOptimizationDisabled(context)
+
+        val isXiaomi = DeviceHelper.isXiaomi()
+
+        val startDestination = when {
+            !notificationsEnabled -> "notification_permission"
+            isXiaomi && !batteryOk -> "notification_permission"
+            else -> startDestinationFromIntent
         }
     }
 }

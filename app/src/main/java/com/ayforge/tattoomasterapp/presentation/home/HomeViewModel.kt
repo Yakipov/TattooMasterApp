@@ -3,7 +3,6 @@ package com.ayforge.tattoomasterapp.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ayforge.tattoomasterapp.core.notifications.AppointmentReminderRescheduler
-import com.ayforge.tattoomasterapp.domain.repository.AppointmentRepository
 import com.ayforge.tattoomasterapp.domain.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +17,10 @@ class HomeViewModel(
     val username: StateFlow<String> = _username
 
     init {
-        reminderRescheduler.rescheduleAll()
+        // Запускаем suspend-функцию внутри корутины
+        viewModelScope.launch {
+            reminderRescheduler.rescheduleAll()
+        }
 
         viewModelScope.launch {
             val user = userRepository.getCurrentUser()

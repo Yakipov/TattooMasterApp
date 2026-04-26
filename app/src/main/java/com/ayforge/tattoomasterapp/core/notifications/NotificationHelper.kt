@@ -16,17 +16,20 @@ import com.ayforge.tattoomasterapp.R
 
 object NotificationHelper {
 
-    const val CHANNEL_REMINDERS = "reminders_channel"
+    const val CHANNEL_ID = "reminders_channel" // У вас уже есть эта или похожая константа
+
+    // 1. Добавляем ID для общих уведомлений (из Firebase)
     const val CHANNEL_GENERAL = "general_channel"
 
-    fun createNotificationChannels(context: Context) {
+    // 2. Добавляем метод для создания каналов
+    fun createChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val reminderChannel = NotificationChannel(
-                CHANNEL_REMINDERS,
-                "Напоминания",
+                CHANNEL_ID,
+                "Напоминания о встречах",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Уведомления о встречах и напоминания"
+                description = "Уведомления о предстоящих записях"
             }
 
             val generalChannel = NotificationChannel(
@@ -34,16 +37,16 @@ object NotificationHelper {
                 "Общие уведомления",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Все остальные уведомления"
+                description = "Новости и общая информация"
             }
 
-            val manager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(reminderChannel)
             manager.createNotificationChannel(generalChannel)
         }
     }
 
+    // 3. Добавляем универсальный метод для показа уведомлений
     fun showNotification(
         context: Context,
         channelId: String,
@@ -51,38 +54,25 @@ object NotificationHelper {
         message: String,
         notificationId: Int
     ) {
-        // ✅ PendingIntent — откроет MainActivity с фокусом на календарь
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("navigate_to", "calendar") // ключ можно обработать в MainActivity/NavGraph
-        }
-
+        // Здесь можно добавить логику открытия нужного экрана по нажатию
         val pendingIntent = PendingIntent.getActivity(
             context,
-            0,
-            intent,
+            notificationId, // Используем уникальный ID для каждого PendingIntent
+            context.packageManager.getLaunchIntentForPackage(context.packageName),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_notification) // Иконка, которую вы добавили
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .build()
 
-        val notificationManager = NotificationManagerCompat.from(context)
-
-        // ✅ Проверяем разрешение на уведомления (Android 13+)
-        if (ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationManager.notify(notificationId, builder.build())
-        } else {
-            android.util.Log.w("NotificationHelper", "Нет разрешения POST_NOTIFICATIONS")
-        }
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(notificationId, notification)
     }
+
 }

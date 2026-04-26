@@ -17,6 +17,6 @@ class MainApplication : Application() {
             modules(appModule)
         }
 
-        NotificationHelper.createNotificationChannels(this)
+        NotificationHelper.createChannels(this)
     }
 }

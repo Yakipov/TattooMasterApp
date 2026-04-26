@@ -23,6 +23,7 @@ import com.ayforge.tattoomasterapp.presentation.profile.NotificationSettingsView
 import com.ayforge.tattoomasterapp.presentation.profile.ProfileViewModel
 import com.ayforge.tattoomasterapp.presentation.user.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
+import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -74,12 +75,11 @@ val appModule = module {
 
     single {
         AppointmentReminderRescheduler(
-            context = get<Application>(),
+            context = androidContext(),
             appointmentRepository = get(),
             settingsDataStore = get()
         )
     }
-
 
 
     single<IncomeRepository> { IncomeRepositoryImpl(get(), get()) }
@@ -103,7 +103,8 @@ val appModule = module {
         ProfileViewModel(
             firebaseAuth = get(),
             sessionManager = get(),
-            settingsDataStore = get()
+            settingsDataStore = get(),
+            reminderRescheduler = get()
         )
     }
     viewModel { LanguageViewModel(get()) }

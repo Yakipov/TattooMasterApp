@@ -1,12 +1,11 @@
 package com.ayforge.tattoomasterapp.core.notifications
 
 import android.content.Context
+import com.ayforge.tattoomasterapp.core.notifications.AlarmScheduler
 import com.ayforge.tattoomasterapp.core.settings.SettingsDataStore
 import com.ayforge.tattoomasterapp.domain.repository.AppointmentRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 import java.time.ZoneId
 
 class AppointmentReminderRescheduler(
@@ -15,42 +14,50 @@ class AppointmentReminderRescheduler(
     private val settingsDataStore: SettingsDataStore
 ) {
 
-    fun rescheduleAll() {
-        CoroutineScope(Dispatchers.IO).launch {
+    suspend fun rescheduleAll() {
 
-            // Проверяем настройки
-            val enabled = settingsDataStore.reminderEnabled.first()
-            if (!enabled) return@launch
+        // 1️⃣ Проверяем настройки
+        val enabled = settingsDataStore.reminderEnabled.first()
+        if (!enabled) {
+            // Если уведомления выключены, можно отменить все существующие "будильники"
+            // (это опциональный, но хороший шаг)
+            val appointments = appointmentRepository.getFutureAppointments(LocalDateTime.now()).first()
+            appointments.forEach { AlarmScheduler.cancel(context, it.id) }
+            return
+        }
 
-            val minutesBefore = settingsDataStore.reminderMinutesBefore.first()
+        val minutesBefore = settingsDataStore.reminderMinutesBefore.first()
 
-            // Берём будущие встречи
-            val now = java.time.LocalDateTime.now()
-            val appointments = appointmentRepository
-                .getFutureAppointments(now)
-                .first()
+        // 2️⃣ Берём будущие встречи из Room
+        val now = LocalDateTime.now()
 
-            // Планируем уведомления
-            appointments.forEach { appointment ->
+        val appointments = appointmentRepository
+            .getFutureAppointments(now)
+            .first()
 
-                val startMillis = appointment.startTime
-                    .atZone(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli()
+        // 3️⃣ Ставим уведомления заново с помощью AlarmScheduler
+        appointments.forEach { appointment ->
 
-                // На всякий случай отменяем старое
-                AppointmentNotificationScheduler.cancelReminder(
-                    context = context,
-                    appointmentId = appointment.id
-                )
+            // Сначала отменяем старое (на случай, если оно было)
+            AlarmScheduler.cancel(
+                context = context,
+                appointmentId = appointment.id
+            )
 
-                // Создаём новое
-                AppointmentNotificationScheduler.scheduleReminder(
+            // Вычисляем время срабатывания
+            val triggerAtMillis = appointment.startTime.minusMinutes(minutesBefore.toLong())
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+
+            // Проверяем, что время еще не прошло
+            if (triggerAtMillis > System.currentTimeMillis()) {
+                // И планируем новое с помощью AlarmScheduler
+                AlarmScheduler.schedule(
                     context = context,
                     appointmentId = appointment.id,
-                    appointmentTitle = appointment.description ?: "Встреча",
-                    startTimeMillis = startMillis,
-                    minutesBefore = minutesBefore
+                    triggerAtMillis = triggerAtMillis,
+                    title = appointment.description ?: "Встреча"
                 )
             }
         }
